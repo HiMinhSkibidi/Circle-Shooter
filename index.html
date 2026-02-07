@@ -149,6 +149,13 @@
         display: flex; align-items: center; justify-content: center;
         font-weight: bold; font-size: 24px; pointer-events: auto;
     }
+    #mobile-fullscreen-btn {
+        position: absolute; top: 150px; right: 15px;
+        width: 50px; height: 50px; background: rgba(0, 0, 0, 0.5);
+        border: 1px solid white; border-radius: 5px; color: white;
+        display: none; align-items: center; justify-content: center;
+        font-size: 20px; pointer-events: auto; cursor: pointer;
+    }
     .setting-row { margin: 20px; font-size: 20px; }
     .control-mode-btn { padding: 10px 20px; margin: 0 10px; cursor: pointer; background: #333; border: 1px solid #fff; color: white; }
     .control-mode-btn.active { background: #bf40bf; }
@@ -172,6 +179,7 @@
         <div class="joystick-stick"></div>
     </div>
     <div id="mobile-skill-btn">E</div>
+    <div id="mobile-fullscreen-btn" onclick="toggleFullScreen()">⛶</div>
 </div>
 
 <div id="shopPage" class="full-page">
@@ -322,9 +330,9 @@ let unlockClicks = 0;
 const charData = [
     { name: "Han", color: "cyan", desc: "[E]: Cơn bão đạn - 6 viên (CD: 30s).\nPassive: +10% Tốc độ bắn.", cd: 30, passive: "han" },
     { name: "Stone", color: "grey", desc: "[E]: Thuẫn mạnh nhất (CD: 30s).\nPassive: +15% Máu tối đa.", cd: 30, passive: "stone" },
-    { name: "Fey", color: "yellow", desc: "[E]: Đạp gió phi diêm (CD: 20s).\nPassive: +10% Tốc độ chạy.", cd: 20, passive: "fey" },
+    { name: "Fey", color: "yellow", desc: "[E]: Đạp gió phi diêm (CD: 20s).\nPassive: +15% Tốc độ chạy.", cd: 20, passive: "fey" },
     { name: "Stephanie", color: "pink", desc: "[E]: Trận pháp trị liệu (CD: 30s).\nPassive: 4% rơi thuốc hồi phục.", cd: 30, passive: "stephanie" },
-    { name: "Adamant", color: "orange", desc: "[E]: Phục quang tuyến (CD: 30s).\nPassive: +10% lực bắn đạn.", cd: 30, passive: "adamant" },
+    { name: "Adamant", color: "orange", desc: "[E]: Mũi tên xuyên mây (CD: 30s).\nPassive: +10% lực bắn đạn.", cd: 30, passive: "adamant" },
     { name: "Marcel", color: "lime", desc: "[E]: Tháp súng máy (CD: 40s).\nPassive: Robot mini hỗ trợ bắn mỗi 4s.", cd: 40, passive: "marcel" },
     { name: "Chrono", color: "#a2a2ff", desc: "[E]: Thời không ngưng trắc (CD: 40s).\nPassive: -10% CD kỹ năng.", cd: 40, passive: "chrono" },
     { name: "Caisy", color: "blue", desc: "[E]: Hào quang cấm vệ (CD: 30s).\nPassive: 8% đạn cường hóa.", cd: 30, passive: "caisy" },
@@ -414,6 +422,20 @@ function setControl(mode) {
     controlMode = mode;
     document.getElementById("btn-pc").classList.toggle("active", mode === 'pc');
     document.getElementById("btn-mobile").classList.toggle("active", mode === 'mobile');
+    // Hiện nút fullscreen nếu ở chế độ mobile
+    document.getElementById("mobile-fullscreen-btn").style.display = (mode === 'mobile') ? "flex" : "none";
+}
+
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
 }
 
 // --- END MOBILE LOGIC ---
@@ -552,6 +574,7 @@ function buyUpgrade(type) {
 function createBullet(x, y, angle, speed=9, r=6, color=player.color, bounce=0, pierce=false) {
     let finalColor = color, finalSpeed = speed * (1 + upgReinforce * 0.05), finalR = r;
     let finalPierce = pierce, finalBounce = bounce, glow = 0, pierceCount = pierce ? 1 : 0; 
+    if (charData[selectedCharIdx].passive === "han") { finalSpeed *= 1.1; finalR *= 1.1; }
     if (charData[selectedCharIdx].passive === "adamant") { finalSpeed *= 1.1; finalR *= 1.1; }
     if (charData[selectedCharIdx].passive === "caisy" && Math.random() < 0.08) { finalPierce = true; pierceCount = 1; finalBounce = 2; glow = 8; finalColor = "#99ccff"; }
     if (stephanieField) {
@@ -596,7 +619,7 @@ function useAbility() {
         let orbs = []; for(let i=0; i<8; i++) orbs.push({ active: true });
         caisyOrbit = { timer: 480, angle: 0, radius: 80, orbs: orbs }; 
     }
-    else if (name === "Augran") { augranInvisTimer = 90; augranTrap = { x: player.x, y: player.y, r: 25, timer: 90 }; }
+    else if (name === "Augran") { augranInvisTimer = 90; augranTrap = { x: player.x, y: player.y, r: 25, timer: 180 }; }
     else if (name === "Wallace") { speakers.push({ x: player.x, y: player.y, r: 15, range: 150, hp: PartyUp ? 3 : 2, wave: 0 }); }
 
     let cdInterval = setInterval(() => {
@@ -641,7 +664,7 @@ function startGame() {
     });
 
     player.maxHp = (charData[selectedCharIdx].passive === "stone") ? 115 : 100;
-    player.baseSpeed = (charData[selectedCharIdx].passive === "fey") ? 4.4 : 4;
+    player.baseSpeed = (charData[selectedCharIdx].passive === "fey") ? 4.6 : 4;
     player.speed = player.baseSpeed; player.hp = player.maxHp; 
     player.x = canvas.width/2; player.y = canvas.height/2;
 
@@ -729,6 +752,7 @@ function update() {
 
     if (timeSlowTimer > 0) timeSlowTimer--;
     if (caisyOrbit) { caisyOrbit.timer--; caisyOrbit.angle += 0.08; if (caisyOrbit.timer <= 0 || caisyOrbit.orbs.every(o => !o.active)) caisyOrbit = null; }
+    if (augranTrap) { augranTrap.timer--; if (augranTrap.timer <= 0) { augranTrap = null; }}
     if (stephanieField) {
         stephanieField.timer--; stephanieField.healCd--;
         if (Math.random() < 0.15) healParticles.push({ x: stephanieField.x + (Math.random()*160-80), y: stephanieField.y + (Math.random()*160-80), life: 1.0 });
@@ -788,7 +812,7 @@ function update() {
             for(let i=0; i<caisyOrbit.orbs.length; i++) {
                 let orb = caisyOrbit.orbs[i]; if (!orb.active) continue;
                 let ox = player.x + Math.cos(caisyOrbit.angle + (i * Math.PI*2/8)) * caisyOrbit.radius, oy = player.y + Math.sin(caisyOrbit.angle + (i * Math.PI*2/8)) * caisyOrbit.radius;
-                if (Math.hypot(e.x - ox, e.y - oy) < e.r + 8) { orb.active = false; if ((e.type === "heavy" || e.type === "assault") && !e.hit) { e.hit = true; e.r = 14; e.speed = (e.type === "assault") ? 11 : 1.3; } else { if (e.type === "bomber") explosionTimers.push({x: e.x, y: e.y, t: 15}); if (charData[selectedCharIdx].passive === "stephanie" && Math.random() < 0.04) items.push({x: e.x, y: e.y}); if (charData[selectedCharIdx].passive === "augran" && Math.random() < 0.08) items.push({x: e.x, y: e.y, type: "augranCoin"}); enemies.splice(ei, 1); coins+= 2; updateUI(); return; } }
+                if (Math.hypot(e.x - ox, e.y - oy) < e.r + 8) { orb.active = false; if ((e.type === "heavy" || e.type === "assault") && !e.hit) { e.hit = true; e.r = 14; e.speed = (e.type === "assault") ? 11 : 1.3; if(!b.pierce) bullets.splice(bi, 1); return; } else { if (e.type === "bomber") explosionTimers.push({x: e.x, y: e.y, t: 15}); if (charData[selectedCharIdx].passive === "stephanie" && Math.random() < 0.04) items.push({x: e.x, y: e.y}); if (charData[selectedCharIdx].passive === "augran" && Math.random() < 0.08) items.push({x: e.x, y: e.y, type: "augranCoin"}); enemies.splice(ei, 1); coins+= 2; updateUI(); return; } }
             }
         }
         if (e.type === "assault") { e.x += e.vx * multi; e.y += e.vy * multi; e.shootCd -= multi; if (e.shootCd <= 0) { e.shootCd = 25; enemyBullets.push({x: e.x, y: e.y, vx: Math.cos(Math.atan2(player.y - e.y, player.x - e.x))*5, vy: Math.sin(Math.atan2(player.y - e.y, player.x - e.x))*5, r: 5}); } if (e.x < -50 || e.x > canvas.width + 50 || e.y < -50 || e.y > canvas.height + 50) { enemies.splice(ei, 1); return; } if (augranInvisTimer <= 0 && !player.isInvulnerable && Math.hypot(player.x - e.x, player.y - e.y) < player.r + e.r) { player.hp -= 20; enemies.splice(ei, 1); return; } }
@@ -800,7 +824,8 @@ function update() {
             e.x += Math.cos(angle)*e.speed * multi; e.y += Math.sin(angle)*e.speed * multi;
             if (augranInvisTimer <= 0 && !player.isInvulnerable && Math.hypot(player.x - e.x, player.y - e.y) < player.r + e.r) { if (thornArmorTimer > 0) { e.x -= Math.cos(angle) * 150; e.y -= Math.sin(angle) * 150; thornArmorTimer = 0; return; } player.hp -= (e.type === "heavy" ? 20 : 10); if (charData[selectedCharIdx].passive === "stephanie" && Math.random() < 0.04) items.push({x: e.x, y: e.y}); if (charData[selectedCharIdx].passive === "augran" && Math.random() < 0.08) items.push({x: e.x, y: e.y, type: "augranCoin"}); enemies.splice(ei, 1); }
         }
-        bullets.forEach((b, bi) => { if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) { if ((e.type === "heavy" || e.type === "assault") && !e.hit) { e.hit = true; e.r = 14; e.speed = (e.type === "assault") ? 11 : 1.3; if(!b.pierce) bullets.splice(bi, 1); return; } if (e.type === "bomber") explosionTimers.push({x: e.x, y: e.y, t: 15}); if (charData[selectedCharIdx].passive === "stephanie" && Math.random() < 0.04) items.push({x: e.x, y: e.y}); if (charData[selectedCharIdx].passive === "augran" && Math.random() < 0.08) items.push({x: e.x, y: e.y, type: "augranCoin"}); enemies.splice(ei, 1); coins+= 2; updateUI(); if (b.pierce) { if (b.pierceCount > 0) b.pierceCount--; else bullets.splice(bi, 1); } else bullets.splice(bi, 1); } });
+        bullets.forEach((b, bi) => { if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) { if ((e.type === "heavy" || e.type === "assault") && !e.hit) { e.hit = true; e.r = 14; e.speed = (e.type === "assault") ? 11 : 1.3; if(!b.pierce) bullets.splice(bi, 1); return; } if (e.type === "bomber") explosionTimers.push({x: e.x, y: e.y, t: 15}); if (charData[selectedCharIdx].passive === "stephanie" && Math.random() < 0.04) items.push({x: e.x, y: e.y}); if (charData[selectedCharIdx].passive === "augran" && Math.random() < 0.08) items.push({x: e.x, y: e.y, type: "augranCoin"}); enemies.splice(ei, 1); coins+= 2; updateUI(); 
+        if (charData[selectedCharIdx].name === "Fey" && !canAbility) { abilityTimer = Math.max(0, abilityTimer - 1); } if (b.pierce) { if (b.pierceCount > 0) b.pierceCount--; else bullets.splice(bi, 1); } else bullets.splice(bi, 1); } });
     });
 
     parachuteAlerts.forEach((a, ai) => { a.timer--; if (a.timer <= 0) { let p = { x: a.x, y: a.y, r: 14, type: "parachute", speed: 1.3 }; enemies.push(p); parachuteAlerts.splice(ai, 1); const ang = Math.atan2((augranTrap?augranTrap.y:player.y) - p.y, (augranTrap?augranTrap.x:player.x) - p.x); enemyBullets.push({x: p.x, y: p.y, vx: Math.cos(ang)*4, vy: Math.sin(ang)*4, r: 5}); setTimeout(() => { if (gameState === "playing" && !isPaused) { const na = Math.atan2((augranTrap?augranTrap.y:player.y) - p.y, (augranTrap?augranTrap.x:player.x) - p.x); enemyBullets.push({x: p.x, y: p.y, vx: Math.cos(na)*4, vy: Math.sin(na)*4, r: 5}); } }, 200); } });
